@@ -1,0 +1,8 @@
+{application, soyuz,
+ [{description, "Federative textboard"},
+  {vsn, "0.1"},
+  {modules, [soyuz_app, soyuz_sup]},
+  {registered, []},
+  {applications, [kernel, stdlib, sasl, mnesia]},
+  {mod, {soyuz_app,[]}}
+ ]}.
