@@ -21,6 +21,7 @@
 	deleted,
 	date, % decided server side
 	name, % decided client side
+	tripcode,
 	link, % decided client side
 	body  % decided client side
 }).

@@ -137,7 +137,7 @@ view_thread(Board, Thread_id, Qualifier) ->
 			all ->
 				R
 		end,
-		{threadview, Thread, Rep}
+		[{thread, Thread}, {posts, Rep}]
 	end,
 	Fun = fun() ->
 		Result = get_thread(Board, Thread_id),

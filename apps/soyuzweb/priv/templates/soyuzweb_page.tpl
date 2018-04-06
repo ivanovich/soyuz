@@ -7,7 +7,7 @@
 	<div id="footer">
 		<a href="/">{{ sitename }}</a> - 
 		<a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">RSS Feed</a> - 
-		<a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">Soyuz {{ version }}</a>
+		<a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">Soyuz {{version}}</a>
 	</div>
 </body>
 </html>
