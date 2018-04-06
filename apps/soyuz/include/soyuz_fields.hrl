@@ -18,6 +18,7 @@
 %% one table per board
 -record(post, {
 	threadno_replyno, % tuple
+	deleted,
 	date, % decided server side
 	name, % decided client side
 	link, % decided client side

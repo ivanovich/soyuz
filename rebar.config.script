@@ -1,0 +1,7 @@
+%% See reebar.erl where the heavy lifting is done.
+
+compile:file("reebar.erl"),
+C = [reebar:conf()|CONFIG],
+%% io:format("~p~n", [C]),
+file:delete("reebar.beam").
+C.
