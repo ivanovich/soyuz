@@ -10,5 +10,12 @@ start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
-init([]) ->
-    {ok, { {one_for_all, 0, 1}, []} }.
+init(_Args) ->
+	SupFlags = #{
+		strategy => rest_for_one,
+		intensity => 1,
+		period => 5
+	},
+	ChildSpecs = [
+	],
+    {ok, {SupFlags, ChildSpecs}}.

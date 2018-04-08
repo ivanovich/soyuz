@@ -1,0 +1,47 @@
+-include_lib("inets/include/httpd.hrl").
+route_path(Path) ->
+	case filename:split(http_uri:decode(Path)) of
+		["/", Board] ->
+			{mainpage, Board};
+		["/", Board, Thread, "l50"] ->
+			{threadlast, Board, Thread, Num};
+		["/", Board, Thread, [$-|Num]] ->
+			{threadfirst, Board, Thread, Num};
+		["/", Board, Thread, "subback"] ->
+			{subback, Board};
+		_ ->
+			{noneed}.
+
+route_http(Uri) ->
+	case http_uri:parse(Uri) of
+		{error, _Reason} -> 
+			{bad_request, Uri};
+		{ok, {_,_,_,_,Path,_}} ->
+			route_path(Path);
+		{ok, {_,_,_,_,Path,_,_}} ->
+			route_path(Path)
+	end.
+
+route(Uri) ->
+	if
+		%% Because http_uri:parse generates an atom for the scheme,
+		%% there's a possibility of malformed requests causing atom
+		%% leak. I don't actually know if this is an issue in inets,
+		%% but I'm erring on the side of caution and taking the warning
+		%% in the http_uri manpage to heart.
+		   string:find(Uri, "http://") == Uri
+		or string:find(Uri, "https://") == Uri ->
+			route_http(Uri);
+		true ->
+			{bad_request, Uri}
+	end.
+
+
+do(ModData) ->
+	case route(ModData#mod.absolute_uri) of
+		{bad_request, Uri} ->
+		{threadlast, Board, Thread, Num} ->
+			case string:to_integer(Num) of
+				{error,Error} -> {error,Error}
+				{
+	end.

@@ -153,4 +153,12 @@ thread_listing(Board, Qualifier) ->
 		qlc:eval(qlc:q([T || T <- mnesia:table(threads_name(Board))]))
 	end).
 
+board_listing() ->
+	mnesia:transaction(fun() ->
+		qlc:eval(qlc:q([T || T <- mnesia:table(boards)]))
+	end).
 
+view_board(Board) ->
+	mnesia:transaction(fun() ->
+		[B] = mnesia:read(boards, Board), B
+	end).

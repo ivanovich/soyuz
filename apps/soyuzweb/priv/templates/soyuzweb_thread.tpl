@@ -1,8 +1,8 @@
 <div class="thread">
-	<h2><a href="" rel="nofollow">{{thread.subject}}<span class="postcount">({{thread.post_count}})</span></a></h2>
+	<h2><a href="" rel="nofollow">{{thread.thread.subject}} <span class="postcount">({{thread.thread.post_count}})</span></a></h2>
 	<div class="replies">
 		<div class="allreplies">
-		{% for post in posts %}
+		{% for post in thread.posts %}
 			<div class="reply">
 				<h3>
 					<span class="replynum">{{post.threadno_replyno}}</span>
