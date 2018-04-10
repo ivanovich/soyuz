@@ -1,7 +1,7 @@
 -module(soyuz_db).
 
 -export([setup/0]).
--export([create_board/3, get_board/1, delete_board/1]).
+-export([create_board/3, get_board/1, list_board/1, delete_board/1]).
 -export([create_thread/3, get_thread/2, read_thread/3, delete_thread/2]).
 -export([is_in_thread/2, thread_status/1]).
 -export([create_post/3, read_post/3, delete_post/4]).
@@ -35,7 +35,7 @@ create_board(URI, Title, Header) ->
 					title = Title,
 					header = Header
 				},
-				mnesia:write({boards, Board});
+				mnesia:write(boards, Board, write);
 			_ ->
 				{board_already_exists, URI}
 		end
@@ -47,7 +47,8 @@ create_board(URI, Title, Header) ->
 			mnesia:create_table(
 				threads_name(URI),
 				[{attributes, record_info(fields, thread)},
-				 {record_name, thread}
+				 {record_name, thread},
+				 {index, [bump_date]}
 				]
 			),
 			mnesia:create_table(
@@ -66,6 +67,17 @@ get_board(URI) ->
 	mnesia:transaction(fun() ->
 		mnesia:read(boards, URI)
 	end).
+
+%% Returns a thread listing sorted on bump order.
+list_board(URI) ->
+	Fun = fun() ->
+		L = qlc:eval(qlc:q([P || P <- mnesia:table(threads_name(URI))])),
+		F = fun(A, B) ->
+			A#thread.bump_date > B#thread.bump_date
+		end,
+		lists:sort(F, L)
+	end,
+	transaction_board_protected(URI, Fun).
 
 %% This drops the board and its corresponding threads and posts table.
 %% Use with caution!
@@ -93,7 +105,7 @@ create_thread(BoardURI, Subject, Post) ->
 			post_count = 0
 		},
 		mnesia:write(threads_name(BoardURI), Thread, write),
-		create_post_unchecked(BoardURI, Thread#thread.threadno, Post#post{
+		create_post_unchecked(BoardURI, Thread, Post#post{
 			date = Now
 		})
 	end,
@@ -197,14 +209,14 @@ delete_post(BoardURI, Threadno, Replyno, Wipe) ->
 			{[], _} ->
 				{no_such_post, BoardURI, {Threadno, Replyno}};
 			{[P], true} ->
-				mnesia:write(P#post{
+				mnesia:write(posts_name(BoardURI), P#post{
 					deleted = true,
 					body = "",
 					link = "",
 					name = ""
 				});
 			{[P], false} ->
-				mnesia:write(P#post{deleted = true})
+				mnesia:write(posts_name(BoardURI), P#post{deleted = true})
 		end
 	end,
 	transaction_thread_protected(BoardURI, Threadno, InnerMeat, admin).
@@ -261,5 +273,5 @@ create_post_unchecked(BoardURI, Thread, Post) ->
 		end,
 		post_count = Thread#thread.post_count + 1
 	},
-	mnesia:write({posts_name(BoardURI), NewPost}),
-	mnesia:write({threads_name(BoardURI), NewThread}).
+	mnesia:write(posts_name(BoardURI), NewPost, write),
+	mnesia:write(threads_name(BoardURI), NewThread, write).
