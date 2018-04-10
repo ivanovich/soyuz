@@ -1,18 +1,19 @@
 -module(soyuz_db).
 
-%% This module nicely (and relatively efficiently) wraps up all useful
-%% basic database operations, so other modules do not have to make
-%% ad-hoc calls to mnesia. This is not a user interface. `soyuz_read`
-%% and `soyuz_post` exist for that. All this module does beyond wrapping is
-%% adjusting the appropriate metadata such as bumps and other dates.
-%% Tripcode processing and the like is done by the aforementioned modules
-%% that use this one.
-
 -export([setup/0]).
 -export([create_board/3, get_board/1, delete_board/1]).
 -export([create_thread/3, get_thread/2, read_thread/3, delete_thread/2]).
 -export([is_in_thread/2, thread_status/1]).
 -export([create_post/3, read_post/3, delete_post/4]).
+
+%% This module nicely (and relatively efficiently) wraps up all useful
+%% basic database operations, so that other modules do not have to make
+%% ad-hoc calls to mnesia. This is not a user interface. `soyuz_read`
+%% and `soyuz_post` exist for that. All this module does beyond wrapping is
+%% adjusting the appropriate metadata such as bumps and other dates, as well
+%% as protecting from atom leaks (see the internal functions at the bottom
+%% of this file). Tripcode processing, abstract page generation, et cetera,
+%% all take place in the aformentioned `soyuz_read` and `soyuz_post`.
 
 -include_lib("soyuz/include/soyuz_fields.hrl").
 -include_lib("stdlib/include/qlc.hrl").
@@ -105,7 +106,8 @@ get_thread(BoardURI, Threadno) ->
 	end,
 	transaction_board_protected(BoardURI, Meat).
 
-%% This 
+%% Qualifier follows the model of various view types common to textboards.
+%% This function returns a proplist with a thread and a list of its replies.
 read_thread(BoardURI, Threadno, Qualifier) ->
 	InnerMeat = fun(Result) ->
 		[Thread] = Result,
@@ -130,6 +132,8 @@ read_thread(BoardURI, Threadno, Qualifier) ->
 	end,
 	transaction_thread_protected(BoardURI, Threadno, InnerMeat, read).
 
+%% Deletes a thread from the threads table, as well as corresponding replies.
+%% May be paired in future with an export function to allow for recovery.
 delete_thread(BoardURI, Threadno) ->
 	InnerMeat = fun(Result) ->
 		mnesia:delete({threads_name(BoardURI), Result#thread.threadno}),
@@ -141,10 +145,16 @@ delete_thread(BoardURI, Threadno) ->
 	end,
 	transaction_thread_protected(BoardURI, Threadno, InnerMeat, admin).
 
+%% Does not actually touch the database; but belongs in this module
+%% thematically. Simply checks if a `post` record has a given `Threadno`
+%% within its `threadno_replyno` field. The pattern match to extract this
+%% field is awkward, so this function is nice to have.
 is_in_thread(Post, Threadno) ->
 	{Threadno_, _} = Post#post.threadno_replyno,
 	Threadno_ == Threadno.
 
+%% Given the result of a mnesia query that should return exactly one thread,
+%% either returns `ok` or an error.
 thread_status(Result) ->
 	case Result of
 		[] ->
@@ -167,13 +177,17 @@ create_post(BoardURI, Threadno, Post) ->
 	end,
 	transaction_thread_protected(BoardURI, Threadno, InnerMeat, post).
 
-
+%% 
 read_post(BoardURI, Threadno, Replyno) ->
 	InnerMeat = fun(_) ->
 		mnesia:read({posts_name(BoardURI), {Threadno, Replyno}})
 	end,
 	transaction_thread_protected(BoardURI, Threadno, InnerMeat, read).
 
+%% If `Wipe` evaluates to true, the post is not simply marked as deleted,
+%% but stripped of all its content. This is useful in case the post was
+%% deleted for advertising illegal content, to avoid said links persisting
+%% on the administrator's server(s).
 delete_post(BoardURI, Threadno, Replyno, Wipe) ->
 	InnerMeat = fun(_) ->
 		case {
@@ -195,47 +209,19 @@ delete_post(BoardURI, Threadno, Replyno, Wipe) ->
 	end,
 	transaction_thread_protected(BoardURI, Threadno, InnerMeat, admin).
 
-%% Utility functions. Yes, these generate atoms, which is unambiguously a
-%% Bad Thing, but this is the only place in the system this ever happens,
-%% and with the exception of board creation, synthesis of new atoms by
-%% these functions is never exposed via any user interface. The limited
-%% number of atoms that will ever be created in ordinary usage is far smaller
-%% than any common limit. Atom leak is estimated at tens or a few hundred
-%% over years of operation.
-%% All functions that call threads_name/1 or posts_name/1, with the
-%% exception of create_board/3, check for the existence of the board in
-%% the boards table before generating any atoms. If the subsequent atom
-%% would denote a non-existent table, this is stopped before atom leak
-%% can occur. This fills this module with some very un-Erlang-like defensive
-%% code regarding these atoms, but effort has been made to ensure that
-%% the code is no more defensive than absolutely necessary to prevent
-%% atom leak.
+%% `threads_name/1` and `posts_name/1` generate atoms and hence would be
+%% dangerous to export. The exported functions of this module,
+%% wherever there would be a possiblity of generating bogus atoms,
+%% eschew `mnesia:transaction/1` in favour of the two protected transaction
+%% functions. The only place in which `mnesia:transaction/1` is during
+%% board creation. Erlang style is heavily against defensive programming,
+%% but this one exception must be made to guard against atom leak.
 
 threads_name(Name) ->
 	list_to_atom("threads_" ++ Name).
 
 posts_name(Name) ->
 	list_to_atom("posts_" ++ Name).
-
-%% Internal use only, to avoid nesting. Must be run within a transaction.
-create_post_unchecked(BoardURI, Thread, Post) ->
-	Date = os:timestamp(),
-	NewPost = Post#post {
-		threadno_replyno = {
-			Thread#thread.threadno,
-			Thread#thread.post_count + 1
-		},
-		date = Date
-	},
-	NewThread = Thread#thread{
-		bump_date = if
-			Thread#thread.permasage -> Thread#thread.bump_date;
-			true                    -> Post#post.date
-		end,
-		post_count = Thread#thread.post_count + 1
-	},
-	mnesia:write({posts_name(BoardURI), NewPost}),
-	mnesia:write({threads_name(BoardURI), NewThread}).
 
 transaction_thread_protected(BoardURI, Threadno, InnerMeat, Mode) ->
 	Meat = fun() ->
@@ -257,3 +243,23 @@ transaction_board_protected(BoardURI, Meat) ->
 		end
 	end,
 	mnesia:transaction(Fun).
+
+%% Internal use only, to avoid nesting. Must be run within a transaction.
+create_post_unchecked(BoardURI, Thread, Post) ->
+	Date = os:timestamp(),
+	NewPost = Post#post {
+		threadno_replyno = {
+			Thread#thread.threadno,
+			Thread#thread.post_count + 1
+		},
+		date = Date
+	},
+	NewThread = Thread#thread{
+		bump_date = if
+			Thread#thread.permasage -> Thread#thread.bump_date;
+			true                    -> Post#post.date
+		end,
+		post_count = Thread#thread.post_count + 1
+	},
+	mnesia:write({posts_name(BoardURI), NewPost}),
+	mnesia:write({threads_name(BoardURI), NewThread}).

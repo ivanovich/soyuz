@@ -17,11 +17,11 @@
 
 %% one table per board
 -record(post, {
-	threadno_replyno, % tuple
-	deleted,
+	threadno_replyno, % 2-tuple
+	deleted = false,
 	date, % decided server side
-	name, % decided client side
-	trip,
-	link, % decided client side
-	body  % decided client side
+	name = "Anonymous", % decided client side
+	trip = "",
+	link = "", % decided client side
+	body % decided client side
 }).
