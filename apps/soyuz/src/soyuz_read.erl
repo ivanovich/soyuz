@@ -13,7 +13,7 @@ mainpage(Board_id) ->
 	Fun = fun(Thread) ->
 		{atomic, S} = soyuz_db:view_thread(
 			Board_id,
-			Thread#thread.id,
+			Thread#thread.threadno,
 			{last, 10}
 		),
 		S

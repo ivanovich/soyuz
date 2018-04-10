@@ -1,13 +1,13 @@
 %% one table like this in the entire node
 -record(board, {
-	name,
+	uri,
 	title,
 	header
 }).
 
 %% one table per board
 -record(thread, {
-	id,
+	threadno,
 	subject,
 	permasage,
 	closed,
@@ -21,7 +21,7 @@
 	deleted,
 	date, % decided server side
 	name, % decided client side
-	tripcode,
+	trip,
 	link, % decided client side
 	body  % decided client side
 }).
