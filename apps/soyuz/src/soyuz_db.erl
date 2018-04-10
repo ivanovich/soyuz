@@ -12,11 +12,10 @@
 -export([create_board/3, get_board/1, delete_board/1]).
 -export([create_thread/3, get_thread/2, read_thread/3, delete_thread/2]).
 -export([is_in_thread/2, thread_status/1]).
--export([create_post/3, read_post/3, delete_post/3]).
+-export([create_post/3, read_post/3, delete_post/4]).
 
 -include_lib("soyuz/include/soyuz_fields.hrl").
 -include_lib("stdlib/include/qlc.hrl").
-
 
 %% Exports.
 
@@ -42,7 +41,7 @@ create_board(URI, Title, Header) ->
 	end,
 	case mnesia:transaction(Fun) of
 		{atomic, {board_already_exists, URI}} ->
-			{board_already_exists, URI}
+			{board_already_exists, URI};
 		{atomic, _} ->
 			mnesia:create_table(
 				threads_name(URI),
@@ -97,14 +96,14 @@ create_thread(BoardURI, Subject, Post) ->
 			date = Now
 		})
 	end,
-	transaction_board_protected(Meat).
+	transaction_board_protected(BoardURI, Meat).
 
 %%
 get_thread(BoardURI, Threadno) ->
 	Meat = fun() ->
 		mnesia:read(threads_name(BoardURI), Threadno)
 	end,
-	transaction_board_protected(Meat).
+	transaction_board_protected(BoardURI, Meat).
 
 %% This 
 read_thread(BoardURI, Threadno, Qualifier) ->
@@ -129,7 +128,7 @@ read_thread(BoardURI, Threadno, Qualifier) ->
 		end,
 		[{thread, Thread}, {posts, Rep}]
 	end,
-	transaction_thread_protected(InnerMeat).
+	transaction_thread_protected(BoardURI, Threadno, InnerMeat, read).
 
 delete_thread(BoardURI, Threadno) ->
 	InnerMeat = fun(Result) ->
@@ -140,7 +139,7 @@ delete_thread(BoardURI, Threadno) ->
 			   is_in_thread(P, Threadno)
 		]))
 	end,
-	transaction_thread_protected(InnerMeat).
+	transaction_thread_protected(BoardURI, Threadno, InnerMeat, admin).
 
 is_in_thread(Post, Threadno) ->
 	{Threadno_, _} = Post#post.threadno_replyno,
@@ -155,7 +154,7 @@ thread_status(Result) ->
 		[_Thread] ->
 			ok;
 		_ ->
-			what_the_fuck
+			thread_collision
 	end.
 
 %% `Post` is a skeletal instance of the `post` record, with `date`
@@ -164,17 +163,37 @@ thread_status(Result) ->
 %% the timestamp can exactly match the UNIX epoch time in the thread number.
 create_post(BoardURI, Threadno, Post) ->
 	InnerMeat = fun(Result) ->
-		create_post_unchecked(BoardURI, Result, Post);
+		create_post_unchecked(BoardURI, Result, Post)
 	end,
-	transaction_thread_protected(InnerMeat).
+	transaction_thread_protected(BoardURI, Threadno, InnerMeat, post).
 
 
 read_post(BoardURI, Threadno, Replyno) ->
-	ok.
+	InnerMeat = fun(_) ->
+		mnesia:read({posts_name(BoardURI), {Threadno, Replyno}})
+	end,
+	transaction_thread_protected(BoardURI, Threadno, InnerMeat, read).
 
-delete_post(BoardURI, Threadno, Replyno) ->
-	ok.
-
+delete_post(BoardURI, Threadno, Replyno, Wipe) ->
+	InnerMeat = fun(_) ->
+		case {
+			mnesia:read({posts_name(BoardURI), {Threadno, Replyno}}),
+			Wipe
+		} of
+			{[], _} ->
+				{no_such_post, BoardURI, {Threadno, Replyno}};
+			{[P], true} ->
+				mnesia:write(P#post{
+					deleted = true,
+					body = "",
+					link = "",
+					name = ""
+				});
+			{[P], false} ->
+				mnesia:write(P#post{deleted = true})
+		end
+	end,
+	transaction_thread_protected(BoardURI, Threadno, InnerMeat, admin).
 
 %% Utility functions. Yes, these generate atoms, which is unambiguously a
 %% Bad Thing, but this is the only place in the system this ever happens,
@@ -218,21 +237,23 @@ create_post_unchecked(BoardURI, Thread, Post) ->
 	mnesia:write({posts_name(BoardURI), NewPost}),
 	mnesia:write({threads_name(BoardURI), NewThread}).
 
-transaction_thread_protected(InnerMeat) ->
+transaction_thread_protected(BoardURI, Threadno, InnerMeat, Mode) ->
 	Meat = fun() ->
 		Result = mnesia:read(threads_name(BoardURI), Threadno),
-		case thread_status(Result) of
-			ok    -> InnerMeat(Result);
-			Error -> Error
+		case {thread_status(Result), Mode} of
+			{ok, _}               -> InnerMeat(Result);
+			{thread_closed, post} -> {thread_closed, post, BoardURI, Threadno};
+			{thread_closed, _}    -> InnerMeat(Result);
+			{Other, Mode}         -> {Other, Mode, BoardURI, Threadno}
 		end
 	end,
-	transaction_board_protected(Meat).
+	transaction_board_protected(BoardURI, Meat).
 
-transaction_board_protected(Meat) ->
+transaction_board_protected(BoardURI, Meat) ->
 	Fun = fun() ->
-		case mnesia:read(Boards, BoardURI) of
-			[]      -> {no_such_board, BoardURI};
-			[Board] -> Meat()
+		case mnesia:read(boards, BoardURI) of
+			[]  -> {no_such_board, BoardURI};
+			[_] -> Meat()
 		end
 	end,
 	mnesia:transaction(Fun).
