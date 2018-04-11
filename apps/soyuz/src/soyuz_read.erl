@@ -8,7 +8,7 @@
 -include_lib("soyuz/include/soyuz_fields.hrl").
 
 mainpage(BoardURI) ->
-	{atomic, Board} = soyuz_db:get_board(BoardURI),
+	{atomic, [Board]} = soyuz_db:get_board(BoardURI),
 	{atomic, Threads} = soyuz_db:list_board(BoardURI),
 	Fun = fun(Thread) ->
 		{atomic, S} = soyuz_db:read_thread(
