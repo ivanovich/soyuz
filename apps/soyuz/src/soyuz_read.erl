@@ -27,10 +27,7 @@ mainpage(BoardURI) ->
 threadpage(BoardURI, Threadno, Qualifier) ->
 	{atomic, Board} = soyuz_db:get_board(BoardURI),
 	{atomic, Thread} = soyuz_db:read_thread(BoardURI, Threadno, Qualifier),
-	[
-		{board, Board},
-		{thread, Thread}
-	].
+	[{board, Board}|Thread].
 
 backlogpage(BoardURI) ->
 	{atomic, Board} = soyuz_db:get_board(BoardURI),

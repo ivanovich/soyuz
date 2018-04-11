@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
 	<title>{% block title %}{% endblock %}</title>
-	<link rel="stylesheet" type="text/css" href="blue_moon.css">
+	<link rel="stylesheet" type="text/css" href="/static/blue_moon.css">
 </head>
 <body class="{% block bodyclass %}{% endblock %}">
 	{% block content %}

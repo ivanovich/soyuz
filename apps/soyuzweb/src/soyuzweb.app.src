@@ -3,6 +3,6 @@
   {vsn, "0.1.0"},
   {registered, []},
   {mod, { soyuzweb_app, []}},
-  {applications, [kernel, stdlib, sasl, inets]},
+  {applications, [kernel, stdlib, sasl, cowlib, soyuz, inets]},
   {modules, []}
  ]}.
