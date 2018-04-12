@@ -1,4 +1,4 @@
--module(soyuzweb_mod_pagegen).
+-module(mod_soyuzweb).
 %% Fancy specialised API module for inets. Existence of this file is
 %% contingent upon this project not moving on to cowboy or something.
 %% Does basic ``routing'' and handles page generation, posting, etc.

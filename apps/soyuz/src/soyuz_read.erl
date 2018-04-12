@@ -8,7 +8,7 @@
 -include_lib("soyuz/include/soyuz_fields.hrl").
 
 mainpage(BoardURI) ->
-	{atomic, Board} = soyuz_db:get_board(BoardURI),
+	{atomic, [Board]} = soyuz_db:get_board(BoardURI),
 	{atomic, Threads} = soyuz_db:list_board(BoardURI),
 	Fun = fun(Thread) ->
 		{atomic, S} = soyuz_db:read_thread(
@@ -25,12 +25,12 @@ mainpage(BoardURI) ->
 	].
 
 threadpage(BoardURI, Threadno, Qualifier) ->
-	{atomic, Board} = soyuz_db:get_board(BoardURI),
+	{atomic, [Board]} = soyuz_db:get_board(BoardURI),
 	{atomic, Thread} = soyuz_db:read_thread(BoardURI, Threadno, Qualifier),
 	[{board, Board}|Thread].
 
 backlogpage(BoardURI) ->
-	{atomic, Board} = soyuz_db:get_board(BoardURI),
+	{atomic, [Board]} = soyuz_db:get_board(BoardURI),
 	{atomic, Threads} = soyuz_db:list_board(BoardURI),
 	[
 		{board, Board},
