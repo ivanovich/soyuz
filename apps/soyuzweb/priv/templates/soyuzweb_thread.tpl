@@ -1,15 +1,15 @@
 <div class="thread">
-	<h2><a href="" rel="nofollow">{{thread.subject}} <span class="postcount">({{thread.post_count}})</span></a></h2>
+	<h2><a href="" rel="nofollow">{{thread.thread.subject}} <span class="postcount">({{thread.thread.post_count}})</span></a></h2>
 	<div class="replies">
 		<div class="allreplies">
 		{% for post in thread.posts %}
 			<div class="reply">
 				<h3>
-					<span class="replynum">{{post.threadno_replyno}}</span>
+					<span class="replynum">{{post.threadno_replyno.2}}</span>
 					Name: 
 					<span class="postername">{{post.name}}</span>
 					<span class="postertrip">{{post.tripcode}}</span>
-					: {{post.date}}
+					: {{post.date|date:"Y-m-d H:i"}}
 				</h3>
 				<div class="replytext">{{post.body}}</div>
 			</div>

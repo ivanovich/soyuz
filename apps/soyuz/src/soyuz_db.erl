@@ -95,18 +95,17 @@ delete_board(URI) ->
 create_thread(BoardURI, Subject, Post) ->
 	Meat = fun() ->
 		Now = os:timestamp(),
-		Unix = soyuz_util:unixtime(Now),
 		Thread = #thread {
-			threadno = Unix,
+			threadno = soyuz_util:unixtime(Now),
 			subject = Subject,
 			permasage = false,
 			closed = false,
-			bump_date = Now,
+			bump_date = calendar:now_to_datetime(Now),
 			post_count = 0
 		},
 		mnesia:write(threads_name(BoardURI), Thread, write),
 		create_post_unchecked(BoardURI, Thread, Post#post{
-			date = Now
+			date = calendar:now_to_datetime(Now)
 		})
 	end,
 	transaction_board_protected(BoardURI, Meat).
@@ -258,13 +257,15 @@ transaction_board_protected(BoardURI, Meat) ->
 
 %% Internal use only, to avoid nesting. Must be run within a transaction.
 create_post_unchecked(BoardURI, Thread, Post) ->
-	Date = os:timestamp(),
 	NewPost = Post#post {
 		threadno_replyno = {
 			Thread#thread.threadno,
 			Thread#thread.post_count + 1
 		},
-		date = Date
+		date = case Post#post.date of
+			undefined -> calendar:now_to_datetime(os:timestamp());
+			Already   -> Already
+		end
 	},
 	NewThread = Thread#thread{
 		bump_date = if

@@ -9,11 +9,11 @@ populate() ->
 		soyuz_db:create_board("b", "Random", "<p>Works herein, fiction falshood, yadda yadda.</p>"),
 		soyuz_db:create_thread(
 			"b",
-			"owo whats this",
+			"hi im 12 and what is this",
 			#post {
 				name = "Anonymous",
-				link = "yuuko@cock.li",
-				body = "im 12 and what is this"
+				link = "mailto:terrydavis@cia.gov",
+				body = "please do not report me i am being tracked by handsome glow in the dark gentlemen"
 			}
 		)
 	].
