@@ -4,6 +4,7 @@
 
 -include_lib("soyuz/include/soyuz_fields.hrl").
 
+
 post_thread(Board, Subject, NameField, LinkField, BodyField) ->
 	Conf = soyuz_config:board_config(Board),
 	case proplists:lookup(allow_threads, Conf) of
