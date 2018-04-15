@@ -3,6 +3,13 @@
 -compile(export_all).
 -include_lib("soyuz/include/soyuz_fields.hrl").
 
+balls() ->
+	[
+		soyuz_db:setup(),
+		soyuz_db:create_board("b", "Random", "<p>Works herein, fiction falsehood, yadda yadda.</p>"),
+		soyuzweb_pagegen:build_all()
+	].
+
 populate() ->
 	[
 		soyuz_db:setup(),

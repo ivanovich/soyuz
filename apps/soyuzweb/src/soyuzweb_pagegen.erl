@@ -17,7 +17,7 @@ build_board(URI) ->
 	build_mainpage(URI).
 
 build_mainpage(URI) ->
-	L = soyuz_read:mainpage(URI),
+	L = soyuz_read:mainpage(soyuzweb, URI),
 	{ok, File} = file:open(
 		filename:join(soyuzweb_util:doc_root() ++ [URI] ++ ["index.html"]),
 		write
@@ -26,5 +26,6 @@ build_mainpage(URI) ->
 	io:fwrite(File, "~s", [Output]).
 
 build_threadpage(URI, Threadno, Qualifier) ->
-	L = soyuz_read:threadpage(URI, Threadno, Qualifier),
-	soyuzweb_threadpage_tpl:render(L).
+	L = soyuz_read:threadpage(soyuzweb, URI, Threadno, Qualifier),
+	{ok, Output} = soyuzweb_threadpage_tpl:render(L).
+%%	io:fwrite(File, "~s", [Output]).

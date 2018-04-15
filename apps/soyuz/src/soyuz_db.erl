@@ -1,6 +1,7 @@
 -module(soyuz_db).
 
 -export([setup/0]).
+-export([board_listing/0]).
 -export([create_board/3, get_board/1, list_board/1, delete_board/1]).
 -export([create_thread/3, get_thread/2, read_thread/3, delete_thread/2]).
 -export([is_in_thread/2, thread_status/1]).
@@ -25,6 +26,11 @@ setup() ->
 		boards,
 		[{attributes, record_info(fields, board)}, {record_name, board}]
 	).
+
+board_listing() ->
+	mnesia:transaction(fun() ->
+		qlc:eval(qlc:q([B || B <- mnesia:table(boards)]))
+	end).
 
 create_board(URI, Title, Header) ->
 	Fun = fun() ->
@@ -68,7 +74,7 @@ get_board(URI) ->
 		mnesia:read(boards, URI)
 	end).
 
-%% Returns a thread listing sorted on bump order.
+%% Returns a thread listing sorted on bump order, newest-first.
 list_board(URI) ->
 	Fun = fun() ->
 		L = qlc:eval(qlc:q([P || P <- mnesia:table(threads_name(URI))])),
@@ -126,18 +132,22 @@ read_thread(BoardURI, Threadno, Qualifier) ->
 			P <- mnesia:table(posts_name(BoardURI)),
 			is_in_thread(P, Threadno)
 		])),
+		F = fun(A, B) ->
+			A#post.threadno_replyno < B#post.threadno_replyno
+		end,
+		RS = lists:sort(F, R),
 		Rep = case Qualifier of
 			{first, Many} ->
-				lists:sublist(R, Many);
+				lists:sublist(RS, Many);
 			{last, Many} ->
-				[OP|S] = R,
+				[OP|S] = RS,
 				L = length(S),
 				[OP|if
 					Many < L -> lists:nthtail(L - Many, S);
 					true     -> S
 				end];
 			all ->
-				R
+				RS
 		end,
 		[{thread, Thread}, {posts, Rep}]
 	end,
@@ -183,7 +193,7 @@ thread_status(Result) ->
 %% `undefined` upon reaching this function is thread creation, so that
 %% the timestamp can exactly match the UNIX epoch time in the thread number.
 create_post(BoardURI, Threadno, Post) ->
-	InnerMeat = fun(Result) ->
+	InnerMeat = fun([Result]) ->
 		create_post_unchecked(BoardURI, Result, Post)
 	end,
 	transaction_thread_protected(BoardURI, Threadno, InnerMeat, post).
@@ -237,7 +247,7 @@ posts_name(Name) ->
 transaction_thread_protected(BoardURI, Threadno, InnerMeat, Mode) ->
 	Meat = fun() ->
 		Result = mnesia:read(threads_name(BoardURI), Threadno),
-		case {thread_status(Result), Mode} of
+		case {thread_status([Result]), Mode} of
 			{ok, _}               -> InnerMeat(Result);
 			{thread_closed, post} -> {thread_closed, post, BoardURI, Threadno};
 			{thread_closed, _}    -> InnerMeat(Result);
@@ -266,11 +276,12 @@ create_post_unchecked(BoardURI, Thread, Post) ->
 			undefined -> calendar:now_to_datetime(os:timestamp());
 			Already   -> Already
 		end
+		
 	},
 	NewThread = Thread#thread{
 		bump_date = if
 			Thread#thread.permasage -> Thread#thread.bump_date;
-			true                    -> Post#post.date
+			true                    -> NewPost#post.date
 		end,
 		post_count = Thread#thread.post_count + 1
 	},

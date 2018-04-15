@@ -16,15 +16,15 @@
 		{% endfor %}
 		</div>
 	</div>
-	<form id="postform{{thread.threadno}}" action="{{thread.threadno}}/reply" method="post">
+	<form id="postform{{thread.thread.threadno}}" action="{{thread.thread.threadno}}/post" method="post">
 		<table>
 			<tbody>
 				<tr>
 					<td>Name:</td>
 					<td>
-						<input name="name" size="19" maxlength="100" type="text">
+						<input name="name" size="19" maxlength="{{config.max_field_length}}" type="text">
 						Link:
-						<input name="link" size="19" maxlength="100" type="text">
+						<input name="link" size="19" maxlength="{{config.max_field_length}}" type="text">
 						<input value="Reply" type="submit">
 						<small>
 							<a href="javascript:show('options{{thread.threadno}}')">More options...</a>

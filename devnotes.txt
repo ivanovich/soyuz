@@ -1,1 +1,15 @@
-man, you know what would be sweet?
+2018-04-14
+okay, i've gone in and created proper configuration management
+now i can:
+- do up the html templates with the pertinent config items
+- go back into the mid-level mnesia operations and make them feature-complete
+- then i can feel safe and secure implementing good old proper page service
+
+have some graphviz:
+soyuz_config -> soyuz_db -> soyuz_read
+soyuz_config -> soyuz_read
+
+
+
+2018-04-13
+all dev notes prior to this were kept on pen and paper
