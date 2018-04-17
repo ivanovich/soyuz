@@ -1,3 +1,35 @@
+devlog! this file doesn't really expire or delete entries between
+commits, it's not exactly a changelog, but should help someone looking
+at the codebase to get inside the developer's head if need be
+
+2018-04-16
+since last update, the damn thing actually works!
+in a most basic sense, anyway
+hence the tongue-in-cheek commit message that this is watershed
+the priorities going forward are, in order:
+- input validation:
+  - basic field length stuff
+  - forced anon enforcement
+  - any other parameters described in app config
+  - basic post parsing for reply links and whatnot, a consistent
+    representation post-parse
+    - done in a manner that will lend itself well to later addition of
+      full-blown wakamark support
+  - tripcodes
+    - utf8 to sjis, rip a table from icu, mechanically turn it into a
+      binary, use binary:at, gucci gang
+- another cleanup pass at the codebase
+  - try to consolidate any routines that access state as tightly
+    as possible, nest or merge any sequences of multiple mnesia
+    transactions and try to make any individual request or response use
+    one and only one mnesia read, one and only one application env
+    (ets under the hood) read
+  - if done right this will not sacrifice clarity or performance
+- full page generation, subback, etc
+
+once that is done, we can finally begin work on the actual important
+part of the project, but let's not put the cart in front of the horse
+
 2018-04-14
 okay, i've gone in and created proper configuration management
 now i can:
