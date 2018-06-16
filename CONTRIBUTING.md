@@ -23,7 +23,16 @@ Respect the privacy of others by leaving them be outside of the context of the c
   * For the purposes of this guideline, tabs count for four spaces.
   * Naturally, this is all within reason. Embedding of raw text over 76 lines and other discretionary exceptions are fine.
   * There is no such width restriction for documentation, HTML templates, et cetera, as the former lend themselves well to line wrap, and the latter is in the interest of an understandable connection to the template's rendered output.
-
+* When terms reach line boundaries:
+  * Tagged tuples are indented as follows:
+    ```
+    {tag,
+    	item1,
+    	item2,
+    	item3,
+    	item4
+    }
+    ```
 ### Otherwise
 Barring the above, this document defers to the official [Erlang Programming Rules and Conventions](http://www.erlang.se/doc/programming_rules.shtml).
 

@@ -2,6 +2,8 @@
 %% Fancy specialised API module for inets. Existence of this file is
 %% contingent upon this project not moving on to cowboy or something.
 %% Does basic ``routing'' and handles page generation, posting, etc.
+%% In fact, the use of cowlib just about guarantees this project eventually
+%% transitioning to cowboy in particular.
 
 -include_lib("inets/include/httpd.hrl").
 
